@@ -2,9 +2,13 @@
 
 A Telegram bot playing words game
 
-# TODO
+## Main files
+
+- game_bot.py: Bot with words in text file
+- game_bot_db.py: Bot uses a database
+
+## TODO
 
 - Remove garbage
-- Use a database
 - Implement web hooks
 - Move to cloud
