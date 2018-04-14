@@ -9,6 +9,5 @@ A Telegram bot playing words game
 
 ## TODO
 
-- Remove garbage
 - Implement web hooks
 - Move to cloud
