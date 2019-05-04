@@ -1,36 +1,39 @@
 # -*- coding: utf-8 -*-
-import config
-import telebot
 from collections import defaultdict
 from copy import deepcopy
 from datetime import date
-from time import sleep
 from threading import Thread
+from time import sleep
+
+import telebot
+
+import config
+
 
 bot = telebot.TeleBot(config.token)
 
-# Прочитать весь файл в список
+# Read words file into a list
 with open('wg.txt') as file:
     all_words = file.readlines()
 all_words = [word.strip() for word in all_words]
-# Из списка сделать словарь
+# Turn list into dictionary
 all_words_dict = defaultdict(set)
 for word in all_words:
     all_words_dict[word[0]].add(word.lower())
-# Разрешённые буквы
+# Acceptable characters
 rus_letters = [chr(c) for c in range(ord('а'), ord('я') + 1)] + ['ё']
-# Игроки и даты их последнего валидного сообщения
+# Players together with dates of their last valid message
 players = {}
 
 
-# Определение последней буквы
+# Getting the last letter of the word
 def last_char_func(word):
     if word[-1].lower() in 'ьъы':
         return word[-2].lower()
     return word[-1].lower()
 
 
-# Проверка слова на правильные буквы
+# Check the word's letters for correctness
 def check_letters(word):
     for char in word:
         if char not in rus_letters:
@@ -40,32 +43,34 @@ def check_letters(word):
 
 class WordsGame(object):
     def __init__(self):
-        # Сделать копию словаря
+        # Make a copy of the dictionary with all words
         self.on_hand = deepcopy(all_words_dict)
-        # Переменная для использованных слов
+        # Variable for words already used in the game
         self.used_words = []
-        # Переменная новых слов (может понадобиться)
+        # Variable for new words (might need it in future)
         self.new_words = []
-        # Переменная последней буквы (меняется только ботом)
+        # Last letter variable (can only be changed by bot)
         self.last_char = ''
 
-    # **Функция компьютера(последняя буква)**
+    # Bot's method (last letter)
     def bot_move(self, char):
-        '''Метод хода бота
-        Возвращает метку конца игры'''
-        # Если есть слово на последнюю букву, то последняя буква = функция последней буквы этого слова
-        # И удалить слово из копии словаря
+        '''Bot's move method
+        Returns True if bot loses and game is over
+        Returns False and bot's word otherwise'''
+        # If bot finds a word starting with the current last letter
+        # the last letter becomes = last_char function of bot's word
+        # And this word is deleted from the dictionary
         if len(self.on_hand[char]) > 0:
             word_pick = self.on_hand[char].pop()
-            # Меняем последнюю букву
+            # Change the last letter
             self.last_char = last_char_func(word_pick)
-            # Добавить слово к использованным
+            # Add word to used ones
             self.used_words.append(word_pick)
             #print('Выбор компьютера:', word_pick)
             return False, word_pick
-        # Иначе конецигры = (истина, "ты победил")
+        # Else end of game = (True, "you win")
         else:
-            # вернуть конец игры
+            # return end of game
             return True, None
 
 
@@ -101,11 +106,11 @@ def handle_message(message):
         first = human_word[0]
         last = last_char_func(human_word)
         player.used_words.append(human_word)
-        # с if - для задела на будущее (ввод уровней сложности)
-        # по-простому можно без условия просто удалить слово
+        # next 'if' might be needed in future (to introduce difficulty levels)
+        # without this requirement the word can be deleted unconditionally
         if human_word in player.on_hand[first]:
             player.on_hand[first].remove(human_word)
-        # Результат игры бота - (метка проигрыша, слово бота)
+        # Result of bot's move - (loss message or bot's word)
         bot_result = player.bot_move(last)
         if bot_result[0]:
             del players[id]
@@ -117,7 +122,7 @@ def handle_message(message):
                              .format(bot_result[1], last_char_func(bot_result[1])))
 
 
-# Удаление неактивных игроков
+# Delete inactive players
 def check_activity(players):
     while True:
         for p in players:
